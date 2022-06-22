@@ -64,7 +64,7 @@ pipeline {
                         apply = true
                     } catch (err) {
                         apply = false
-                         currentBuild.result = 'UNSTABLE:Apply Aborted No Changes'
+                         currentBuild.result = 'UNSTABLE'
                     }
                     if(apply){
                         dir('jenkins-terraform-pipeline/ec2_pipeline/'){
