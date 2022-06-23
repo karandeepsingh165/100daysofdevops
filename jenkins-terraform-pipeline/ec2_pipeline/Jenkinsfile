@@ -11,7 +11,7 @@ pipeline {
         string(name: 'WORKSPACE', defaultValue: 'c6-terraform', description:'setting up workspace for terraform')
     }
 
-    environment {
+    env {
        TF_HOME = tool('terraform')
         TP_LOG = "WARN"
        PATH = "$TF_HOME:$PATH"
