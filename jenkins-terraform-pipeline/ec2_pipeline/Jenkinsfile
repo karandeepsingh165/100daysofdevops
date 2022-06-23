@@ -1,20 +1,98 @@
+String environment = ""
+String directory = ""
+String action = ""
+
 pipeline {
     agent any
     tools {
         "org.jenkinsci.plugins.terraform.TerraformInstallation" "terraform"
     }
     parameters {
-        string(name: 'WORKSPACE', defaultValue: 'development', description:'setting up workspace for terraform')
+        string(name: 'WORKSPACE', defaultValue: 'c6-terraform', description:'setting up workspace for terraform')
     }
+
     environment {
        TF_HOME = tool('terraform')
         TP_LOG = "WARN"
        PATH = "$TF_HOME:$PATH"
    }
+
     stages {
+        stage ('Select Environment') {
+            steps {
+                script {
+                    try {
+                        echo "Select Environment"
+                        timeout(time: 300, unit: 'SECONDS') {
+                            def userInput = input message: 'Select Environment',
+                                parameters: [
+                                    choice(name: 'Environment', choices: ['dev', 'int1', 'prod'])
+                                ]
+                            environment = "${userInput}"
+                            echo "Selected Environment is ${environment}"
+                        }
+                    }
+                    catch(err){
+                        def user = err.getCauses()[0].getUser()
+                        if('SYSTEM' == user.toString()) { // SYSTEM means timeout.
+                            echo "Timed Out!"
+                        } else {
+                            echo "Stage Aborted by: [${user}]"
+                        }
+                    }
+                }
+            }   
+        }
+        stage ('Select Directory') {
+            steps {
+                script {
+                    try {
+                        echo "Select Directory"
+                        if ( "${environment}" == "dev" ) {
+                            timeout(time: 300, unit: 'SECONDS') {
+                                def userInput = input message: 'Select directory',
+                                parameters: [
+                                    choice(name: 'Directory', choices: ['services','shared'])
+                                ]
+                                module = "${userInput}"
+                                echo "Selected Directory is ${directory}"
+                            }
+                        } else if ( "${environment}" == "int1" ) {
+                            timeout(time: 300, unit: 'SECONDS') {
+                                def userInput = input message: 'Select Directory',
+                                parameters: [
+                                    choice(name: 'Directory', choices: ['services','shared'])
+                                ]
+                                module = "${userInput}"
+                                echo "Selected Directory is ${directory}"
+                            }
+                        } else if ( "${environment}" == "prod" ) {
+                            timeout(time: 300, unit: 'SECONDS') {
+                                def userInput = input message: 'Select Directory',
+                                parameters: [
+                                    choice(name: 'Directory', choices: ['services','shared'])
+                                ]
+                                module = "${userInput}"
+                                echo "Selected Directory is ${directory}"
+                            }
+                        } else {
+                            echo "Invalid Environment"
+                        }
+                    }
+                    catch(err){
+                        def user = err.getCauses()[0].getUser()
+                        if('SYSTEM' == user.toString()) { // SYSTEM means timeout.
+                            echo "Timed Out!"
+                        } else {
+                            echo "Stage Aborted by: [${user}]"
+                        }
+                    }
+                }
+            }   
+        }
             stage('TerraformInit'){
             steps {
-                dir('jenkins-terraform-pipeline/ec2_pipeline/'){
+                dir('${environment}/${directory}/'){
                     sh "terraform init -input=false"
                     sh "echo \$PWD"
                     sh "whoami"
@@ -24,7 +102,7 @@ pipeline {
 
         stage('TerraformFormat'){
             steps {
-                dir('jenkins-terraform-pipeline/ec2_pipeline/'){
+                dir('${environment}/${directory}/'){
                     sh "terraform fmt -list=true -write=false -diff=true -check=true"
                 }
             }
@@ -32,7 +110,7 @@ pipeline {
 
         stage('TerraformValidate'){
             steps {
-                dir('jenkins-terraform-pipeline/ec2_pipeline/'){
+                dir('${environment}/${directory}/'){
                     sh "terraform validate"
                 }
             }
@@ -40,7 +118,7 @@ pipeline {
 
         stage('TerraformPlan'){
             steps {
-                dir('jenkins-terraform-pipeline/ec2_pipeline/'){
+                dir('${environment}/${directory}/'){
                     script {
                         try {
                             sh "terraform workspace new ${params.WORKSPACE}"
@@ -67,7 +145,7 @@ pipeline {
                          currentBuild.result = 'UNSTABLE'
                     }
                     if(apply){
-                        dir('jenkins-terraform-pipeline/ec2_pipeline/'){
+                        dir('${environment}/${directory}/'){
                             unstash "terraform-plan"
                             sh 'terraform apply terraform.tfplan' 
                         }
