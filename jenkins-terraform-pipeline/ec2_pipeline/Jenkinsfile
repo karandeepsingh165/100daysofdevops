@@ -4,7 +4,7 @@ pipeline {
         "org.jenkinsci.plugins.terraform.TerraformInstallation" "terraform"
     }
     parameters {
-        string(name: 'WORKSPACE', defaultValue: 'development', description:'setting up workspace for terraform')
+        string(name: 'WORKSPACE', defaultValue: 'c6-terraform', description:'setting up workspace for terraform')
     }
     environment {
        TF_HOME = tool('terraform')
@@ -64,7 +64,7 @@ pipeline {
                         apply = true
                     } catch (err) {
                         apply = false
-                         currentBuild.result = 'UNSTABLE'
+                         currentBuild.result = 'FAILED'
                     }
                     if(apply){
                         dir('jenkins-terraform-pipeline/ec2_pipeline/'){
